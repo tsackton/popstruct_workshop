@@ -1,4 +1,4 @@
-Sample	pop	isolate	sex
+sample	pop	isolate	sex
 SAMN08465483	A_urban_2014	BO15-105	female
 SAMN08465551	C3_urban_2012	BO15-069	male
 SAMN08465501	A_urban_2014	BO15-103	male
