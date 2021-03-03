@@ -177,12 +177,16 @@ Note that plink, although super-useful, is designed to work on human data, and w
 
 **Note:** For non-human data, you need to include either the `--allow-extra-chr` flag, if you have non-numeric chromosome names, or `--chr-set` or `--autosome-num` if you have numeric chromosome names. In the latter case, the autosome number has to be higher than or equal to the largest numeric value in your chromosome set.
 
+This step requires the VCF file, and converts it to plink format.
 ```{r engine=bash, eval=FALSE}
-
 SPECIES=pmaj
 
 
 bin/plink --vcf data/vcfs/${SPECIES}_clean.vcf.gz --make-bed --out data/${SPECIES}/${SPECIES} --set-missing-var-ids @:#[$SPECIES]\$1,\$2 --allow-extra-chr
+```
+
+This step does the LD pruning.
+```{r engine=bash}
 bin/plink --bfile data/${SPECIES}/${SPECIES} --indep-pairwise 50 10 0.1 --out data/${SPECIES}/${SPECIES} --allow-extra-chr
 bin/plink --bfile data/${SPECIES}/${SPECIES} --make-bed --extract data/${SPECIES}/${SPECIES}.prune.in --out data/${SPECIES}/${SPECIES}.ld_pruned --allow-extra-chr
 ```
@@ -301,5 +305,23 @@ You have the files to look at the sparrow and the owl datasets as well. As an ex
 While we didn't get to it today, there are lots of other things we can do. For example, the admixture program (in the bin) directory can be used to generate admixture / STRUCTURE-style plots. It is very easy to run ```admixture data/pmaj/pmaj.ld_pruned.bed 8``` for example will generate a K=8 admixture run for the Pmaj data. It is a bit complicated to plot, but there is a detailed manual: http://dalexander.github.io/admixture/admixture-manual.pdf
 
 You can also use PLINK to subset your data to focus on some specific individuals. For example, in the Pmaj data, we might want to exclude the two highly divergent populations and focus on the European and west Asian samples.
+
+Let's quickly look at how to do that. We can use the ```--keep or --keep-fam``` option to filter a PLINK run to just the samples listed. Because of the way plink stores sample information (as a sample id and family id), for our data it makes sense to filter on families, which are equivalent to samples (yes, it's complicated, this is what we get for not working on humans).
+
+First, we'll make a list of the ids that are in the populations we want to keep.
+
+```{r}
+pops_to_keep <- c("EU", "MON", "FRA", "UK", "EST", "SPA")
+samples_to_keep <- pmaj$qc %>% filter(pop %in% pops_to_keep) %>% select(sample)
+write_tsv(samples_to_keep, "data/pmaj/pmaj_filtered_pops", col_names = FALSE)
+```
+
+Now we can rerun the PCA with PLINK, but use the ```--keep-fam``` option to only keep the `pmaj_filtered_pops` samples.
+
+```{r engine=bash}
+SPECIES=pmaj
+
+bin/plink --bfile data/${SPECIES}/${SPECIES}.ld_pruned --pca var-wts --allow-extra-chr --keep-fam data/${SPECIES}/${SPECIES}_filtered_pops --out data/${SPECIES}/${SPECIES}.ld_pruned
+```
 
 I hope this provides a good guideline for how to start with this kind of analysis, but remember this is just a start, and there is a lot more to explore in population structure methods.
