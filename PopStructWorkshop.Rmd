@@ -217,12 +217,51 @@ bin/smartpca -p data/${SPECIES}/$PREFIX.par
 ```   
 This input parameter file runs `smartpca` in its most basic mode (i.e. no automatic outlier removal or adjustments for LD - features which you might want to explore later). 
 
-Now run `smartpca` with the following command (takes about 10 seconds). 
-    
-```{r, engine = 'bash', eval = FALSE}
+Now, we can look at the data and make some plots.
 
-```   
-You will find the output files in the `out` sub-directory as specified in the parameter file.
+```{r}
+
+prefix = "out/H938_Euro.LDprune"
+nPCs = 20 
+
+# Read in eigenvectors file
+PCA = read.table(paste0(prefix,".eigs"))
+names(PCA) = c("ID",paste0("PC",(1:nPCs)),"CaseControl")
+PCA = PCA[,1:(nPCs+1)] 
+
+# Read in eigenvalues file
+eig.val = sqrt(unlist(read.table(paste0(prefix,".eval")))[1:nPCs])
+sum.eig = sum(unlist(read.table(paste0(prefix,".eval"))))
+
+# Read in snp weightings matrix
+snpeigs = read.table(paste0(prefix,".snpeigs"))
+names(snpeigs) = c("ID","chr","pos",paste0("PC",(1:nPCs)))
+snpeigs$chr = factor(snpeigs$chr)
+rownames(snpeigs) <- snpeigs$ID; snpeigs = snpeigs[,-1]
+
+# Clean up IDs
+tmp = unlist(sapply(as.character(PCA$ID),strsplit,":")) # Note smartpca pushes the plink family and individual ids together so we need to extract out the ids afresh
+ids = tmp[seq(2,length(tmp),by=2)]
+PCA$ID = ids
+
+# Read in the group/cluster labels and assign abbreviation labels
+clst = read.table("out/Euro.clst.txt")
+clst_unord = clst$V3[match(ids,clst$V2)]  # Order them to match the ids of PCA object
+abbrev = substr(clst_unord,1,2) # Build simple-minded abbreviations
+PCA = as.data.frame(PCA)
+PCA = cbind(PCA,clst_unord,abbrev)
+names(PCA)[nPCs+2] <- "sample"
+```
+
+### Simple plots of the results
+
+And make a simple plot...
+```{r}
+ggplot(data = PCA, aes(x = PC1, y = PC2, label = abbrev, color = abbrev)) + geom_text()
+```
+
+This plot is nice but the legend is awkward, the French and French Basque were collapsed into "Fre", and it would be nice to plot the medians for each groups and several other features of the PCA results... 
+
 
 
 ### Admixture
