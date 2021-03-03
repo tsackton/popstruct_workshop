@@ -221,52 +221,95 @@ Now, we can look at the data and make some plots.
 
 ```{r}
 
-prefix = "out/H938_Euro.LDprune"
-nPCs = 20 
+read_pca <- function(species, sample_file, prefix, nPCs = 20) {
+  samples <- read_tsv(sample_file)
+  species_path = paste0("data/", species, "/", species, ".", prefix)
+  PCA <- read_delim(paste0(species_path, ".eigs"), 
+                    skip=1, trim_ws = TRUE, delim=" ", 
+                    col_names = c("ID", paste0("PC",(1:nPCs)), "CaseControl")) %>% 
+    select(-CaseControl) %>% separate(ID, into=c("ID"), extra="drop") %>%
+    full_join(samples, by=c("ID" = "sample")) %>%
+    mutate(abr = abbreviate(pop, minlength=3)) %>% select(pop, ID, PC1:PC20, abr)
+  eig.val <- sqrt(unlist(read.table(paste0(species_path,".eval")))[1:nPCs])
+  sum.eig = sum(unlist(read.table(paste0(species_path,".eval"))))
+  
+  # Read in snp weightings matrix
+  snpeigs = read.table(paste0(species_path,".snpeigs"))
+  names(snpeigs) = c("ID","chr","pos",paste0("PC",(1:nPCs)))
+  snpeigs$chr = factor(snpeigs$chr)
+  rownames(snpeigs) <- snpeigs$ID
+  snpeigs = snpeigs[,-1]
+  
+  return(list("pca" = PCA, "eigval" = eig.val, "eigsum" = sum.eig, "snpeigs" = snpeigs))
+}
 
-# Read in eigenvectors file
-PCA = read.table(paste0(prefix,".eigs"))
-names(PCA) = c("ID",paste0("PC",(1:nPCs)),"CaseControl")
-PCA = PCA[,1:(nPCs+1)] 
-
-# Read in eigenvalues file
-eig.val = sqrt(unlist(read.table(paste0(prefix,".eval")))[1:nPCs])
-sum.eig = sum(unlist(read.table(paste0(prefix,".eval"))))
-
-# Read in snp weightings matrix
-snpeigs = read.table(paste0(prefix,".snpeigs"))
-names(snpeigs) = c("ID","chr","pos",paste0("PC",(1:nPCs)))
-snpeigs$chr = factor(snpeigs$chr)
-rownames(snpeigs) <- snpeigs$ID; snpeigs = snpeigs[,-1]
-
-# Clean up IDs
-tmp = unlist(sapply(as.character(PCA$ID),strsplit,":")) # Note smartpca pushes the plink family and individual ids together so we need to extract out the ids afresh
-ids = tmp[seq(2,length(tmp),by=2)]
-PCA$ID = ids
-
-# Read in the group/cluster labels and assign abbreviation labels
-clst = read.table("out/Euro.clst.txt")
-clst_unord = clst$V3[match(ids,clst$V2)]  # Order them to match the ids of PCA object
-abbrev = substr(clst_unord,1,2) # Build simple-minded abbreviations
-PCA = as.data.frame(PCA)
-PCA = cbind(PCA,clst_unord,abbrev)
-names(PCA)[nPCs+2] <- "sample"
+plot_pca <- function(df) {
+  ggplot(data = df, aes(x = PC1, y = PC2, label = abr, color = abr)) + geom_text()
+}
 ```
+
 
 ### Simple plots of the results
 
-And make a simple plot...
+Let's try this for P. major
 ```{r}
-ggplot(data = PCA, aes(x = PC1, y = PC2, label = abbrev, color = abbrev)) + geom_text()
+pmaj.pca <- read_pca("pmaj", "data/pmaj/pmaj_samples_clean.txt", "ld_pruned")
+plot_pca(pmaj.pca$pca)
 ```
 
-This plot is nice but the legend is awkward, the French and French Basque were collapsed into "Fre", and it would be nice to plot the medians for each groups and several other features of the PCA results... 
+#### Plotting PCA results with PCAviz
+The PCAviz package can be found at https://github.com/NovembreLab/PCAviz. It provides a simple interface for quickly creating plots from PCA results. It encodes several best practices for plotting PCA (such as using abberviations for point characters and plotting median positions of each labelled group).
 
+We first need to create a PCAviz object.  We use the `PCA` dataframe defined above.  Crucially, the sample IDs need to be in the next column after the actual numeric PC values.
 
+```{r, results='hide',warning=FALSE,message=FALSE, fig.height=6,fig.width=8}
+library(PCAviz)
 
-### Admixture
+# Build the PCAviz object
+pmajPC <- pcaviz(dat = as.data.frame(select(pmaj.pca$pca, -abr)), sdev=pmaj.pca$eigval, var=pmaj.pca$eigsum, rotation = pmaj.pca$snpeigs)
+```
 
+Let's look at the default plot.
 
+```{r, results='hide',warning=FALSE,message=FALSE, fig.height=6,fig.width=8}
+plot(pmajPC, color="pop")
+```
 
+Make a series of plots:
+
+```{r}
+pcdata=pmajPC
+
+# Customize 
+geom.point.summary.params = list(shape = 16,stroke = 1,size = 7,
+                                 alpha = .7)
+theme_local <- function () {
+  theme_cowplot(font_size=10) 
+}
+
+plot0 <- plot(pcdata)
+plot_legend <- get_legend(plot0)
+
+plot1 <- plot(pcdata,coords = paste0("PC",c(1,2)), color = "pop",
+              geom.point.summary.params = geom.point.summary.params, 
+              preserve.scale = F ,show.legend = FALSE) + theme_cowplot(font_size=10) 
+
+plot2 <- plot(pcdata,coords = paste0("PC",c(3,4)), color = "pop",
+              geom.point.summary.params = geom.point.summary.params, 
+              preserve.scale = F ,show.legend = FALSE) + theme_cowplot(font_size=10)
+
+plot3 <- plot(pcdata,coords = paste0("PC",c(5,6)), color = "pop",
+              geom.point.summary.params = geom.point.summary.params, 
+              preserve.scale = F ,show.legend = FALSE) + theme_cowplot(font_size=10)
+
+plot_grid(plot1, plot2, plot3, plot_legend, labels = list("A","B","C",""))
+```
+
+The proportion of total variance explained by each PC is a useful metric for understanding structure in a sample and for evaluating how many PCs one might want to include in downstream analyses. This can be computed as  $\lambda_i / \sum_{k} \lambda_k$, with $\lambda_i$ being eigenvalues in decreasing order, and is plotted below:
+```{r, warnings=FALSE,fig.width=3.25,fig.height=3}
+screeplot(pmajPC,type='pve')  + ylim(0,0.15) +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      theme(axis.line = element_line(size = 1, linetype = "solid"))
+```
 
 
