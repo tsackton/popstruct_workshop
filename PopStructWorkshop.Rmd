@@ -52,18 +52,18 @@ Two of the most commonly used approaches to describe population structure in a s
 
 The history and basic behaviors of both these approaches have been written about extentsively, including by some of us, and so we refer readers to several previous publications to learn the basic background and interpretative nuances of these approaches and their derivatives [@Pritchard00; @Falush03; @Rosenberg05; @Hubisz09; @Raj14; @Novembre14;@Falush16; @Alexander09; @Alexander11; @Price06;@Patterson06; @Novembre08a; @McVean09; @Novembre16b]. Here, in the spirit of this volume, we provide a protocol for running these analyses and share some pragmatic caveats that do not always arise in more abstract discussions regarding these methods.  
 
-### Materials 
+### Materials
 We are going to focus today on data exploration and on running pca using the `smartpca` software developed by Nick Patterson and colleagues for carrying out PCA [@Price06]. If there is time, we may discuss the `ADMIXTURE` software that John Novembre's lab developed [@Alexander09] for efficiently estimating admixture proportions in the "Pritchard-Stephens-Donnelly" model of admixture [@Pritchard00;@Novembre16a]. For visualization, we'll use `PCAviz` [@Novembre17], a novel R package for plotting PCA outputs, and `pong` [@Behr16] for visualizing output of admixture proportion inferences. We also use `PLINK` [@Purcell07; @Chang15] as a tool to perform some basic manipulations of the data, and vcftools. Binaries for plink, smartpca, and admixture are provided; vcftools commands I will demonstrate, but we won't run. There is a module for vcftools on the Cannon cluster, if you would like to try it.
 
 We will use example data from several different bird resequencing datas: House sparrows [@Elgvin17; @Runemark18], Great tits [@Qu15; @Laine16], and burrowing owls [@Mueller18]. Some of the processing I have already done for these datasets, but we'll do some ourselves.
 
 ### The VCF file
 
-We will start by looking briefly at what a vcf file is. A vcf file is a way to store variant calls, that is places where resequencing data for individuals differ from the reference genome. This is a bit of a pain to do in Rstudio, but I'll share my screen and walk you through it. Everything we will work with today has already been filtered to retain just chromosome 9, for speed and efficiency. These have also been filtered with some standard site filters, to mark sites that are potentially problematic. 
+We will start by looking briefly at what a vcf file is. A vcf file is a way to store variant calls, that is places where resequencing data for individuals differ from the reference genome. This is a bit of a pain to do in Rstudio, but I'll share my screen and walk you through it. Everything we will work with today has already been filtered to retain just chromosome 9, for speed and efficiency. These have also been filtered with some standard site filters, to mark sites that are potentially problematic.
 
 ### Preprocessing
 
-The first thing we want to do, before we do any 'real' analysis, is look at some metrics of data quality. In particular, we want to be sure that none of our individuals are just low quality samples. We can do this by looking at depth and missingness (the fraction of all sites that are not called in a paritcular indivdual). We might also want to calculate things like relatedness, because for all the analyses we will run today, we want to be sure to avoid using related individuals. 
+The first thing we want to do, before we do any 'real' analysis, is look at some metrics of data quality. In particular, we want to be sure that none of our individuals are just low quality samples. We can do this by looking at depth and missingness (the fraction of all sites that are not called in a paritcular indivdual). We might also want to calculate things like relatedness, because for all the analyses we will run today, we want to be sure to avoid using related individuals.
 
 You can run these if you want, but this may not work if vcftools is not configured on the course VDI, and is unnecessary, as I have provided the outputs of these commands for you.
 
@@ -75,7 +75,7 @@ vcftools --gzvcf data/vcfs/${SPECIES}.chrom9.vcf.gz --out data/${SPECIES}/${SPEC
 vcftools --gzvcf data/vcfs/${SPECIES}.chrom9.vcf.gz --out data/${SPECIES}/${SPECIES} --remove-indels --remove-filtered-all --max-missing 0.15 --relatedness2
 ```
 
-Note that is we were doing this for a real project, we'd want to script this, so we could reuse this code. Note we are using a bash variable here, ```${SPECIES}``` so we don't have to retype the vcf filename and the outputs if we do reuse this code. 
+Note that is we were doing this for a real project, we'd want to script this, so we could reuse this code. Note we are using a bash variable here, ```${SPECIES}``` so we don't have to retype the vcf filename and the outputs if we do reuse this code.
 
 This will produce three files. One that lists the missingness per individual, one that lists the depth per individual, and one that computes a pairwise relatedness matrix.
 
@@ -91,14 +91,14 @@ read_ind_qc <- function(species, sample_file) {
   ind_miss <- read_tsv(paste0(species_path, ".imiss"))
   ind_depth <- read_tsv(paste0(species_path, ".idepth"))
   relate <- read_tsv(paste0(species_path, ".relatedness2"))  
-  
+
   #NOTE the following line assumes that the sample_file has a column named sample, and does not do any error checking.
   #this is bad coding practice but for the purposes of this workshop shouldn't break anything because I am providing all the sample files
-  
+
   ind_qc <- left_join(samples, ind_miss, by=c("sample" = "INDV")) %>% left_join(ind_depth, by=c("sample" = "INDV"))
-  
+
   #this returns a named list
-  
+
   return(list("qc" = ind_qc, "relate" = relate))
 
 }
@@ -109,12 +109,12 @@ plot_ind_qc <- function(df) {
 
 plot_relatedness <- function(df) {
   df %>% filter(INDV1 != INDV2) %>% mutate(relatedness = ifelse(RELATEDNESS_PHI < 0, 0, RELATEDNESS_PHI)) %>%
-  ggplot(aes(x=INDV1, y=INDV2)) + 
+  ggplot(aes(x=INDV1, y=INDV2)) +
   geom_tile(aes(fill = relatedness)) +
-  scale_fill_gradient(low="ivory1",high="red4") + 
-  theme(axis.text.y = element_blank(), 
+  scale_fill_gradient(low="ivory1",high="red4") +
+  theme(axis.text.y = element_blank(),
         axis.text.x = element_blank(),
-        axis.ticks.y = element_blank(), 
+        axis.ticks.y = element_blank(),
         axis.ticks.x = element_blank(),
         legend.position = "top")
 }
@@ -147,7 +147,7 @@ From the manual: "Close relatives can be inferred fairly reliably based on the e
 pmaj$relate %>% filter(INDV1 != INDV2, RELATEDNESS_PHI > 0.0442)
 ```
 
-For this species, we don't need to remove any individual because of relatedness. But, we are going to remove the one individual who is listed as "unknown" in our sampling, SAMN04296376. To facilitate removing individuals, we'll make a file of individuals to remove and then use that file with grep (to filter the sample information) and vcftools (to filter the vcf). We'll then export a new vcf that can be read into PLINK for further processing, filtering to retain only biallelic snps and sites with no more than 15% missing data. 
+For this species, we don't need to remove any individual because of relatedness. But, we are going to remove the one individual who is listed as "unknown" in our sampling, SAMN04296376. To facilitate removing individuals, we'll make a file of individuals to remove and then use that file with grep (to filter the sample information) and vcftools (to filter the vcf). We'll then export a new vcf that can be read into PLINK for further processing, filtering to retain only biallelic snps and sites with no more than 15% missing data.
 
 
 ```{r engine=bash, eval=FALSE}
@@ -161,7 +161,7 @@ vcftools --gzvcf data/vcfs/pmaj.chrom9.vcf.gz --out pmaj_clean --remove-indels -
   --recode
 ```
 
-We should also compress and index this output file. 
+We should also compress and index this output file.
 
 #### Exercises
 
@@ -175,7 +175,7 @@ SNPs in high LD with each other contain redundant information.  More worrisome i
 
 Note that plink, although super-useful, is designed to work on human data, and we need to trick it to use it for non-human data.
 
-**Note:** For non-human data, you need to include either the `--allow-extra-chr` flag, if you have non-numeric chromosome names, or `--chr-set` or `--autosome-num` if you have numeric chromosome names. In the latter case, the autosome number has to be higher than or equal to the largest numeric value in your chromosome set. 
+**Note:** For non-human data, you need to include either the `--allow-extra-chr` flag, if you have non-numeric chromosome names, or `--chr-set` or `--autosome-num` if you have numeric chromosome names. In the latter case, the autosome number has to be higher than or equal to the largest numeric value in your chromosome set.
 
 ```{r engine=bash, eval=FALSE}
 
@@ -189,16 +189,16 @@ bin/plink --bfile data/${SPECIES}/${SPECIES} --make-bed --extract data/${SPECIES
 
 ### PCA
 
-PLINK helpfully has a PCA function that calculates a variance-standardized relationship matrix (remember our discussion of PCA from the lecture) and extracts the top 20 principal components from it. 
+PLINK helpfully has a PCA function that calculates a variance-standardized relationship matrix (remember our discussion of PCA from the lecture) and extracts the top 20 principal components from it.
 
 ```{r, engine = 'bash', eval = FALSE}
 SPECIES=pmaj
 
-plink --bfile data/${SPECIES}/${SPECIES}.ld_pruned --pca var-wts --allow-extra-chr --out data/${SPECIES}/${SPECIES}.ld_pruned
+bin/plink --bfile data/${SPECIES}/${SPECIES}.ld_pruned --pca var-wts --allow-extra-chr --out data/${SPECIES}/${SPECIES}.ld_pruned
 ```   
 
 
-Note that this is a fairly rough first pass. For example, it is sometimes recommended to look for SNPs that are strongly influencing the PC results, as they could represent inversions or similar, and remove them. You can do this with the SNP loadings we calculated, but we won't do this today. 
+Note that this is a fairly rough first pass. For example, it is sometimes recommended to look for SNPs that are strongly influencing the PC results, as they could represent inversions or similar, and remove them. You can do this with the SNP loadings we calculated, but we won't do this today.
 
 Now, we can look at the data and make some plots.
 
@@ -207,22 +207,22 @@ Now, we can look at the data and make some plots.
 read_pca <- function(species, sample_file, prefix, nPCs = 20) {
   samples <- read_tsv(sample_file)
   species_path = paste0("data/", species, "/", species, ".", prefix)
-  PCA <- read_delim(paste0(species_path, ".eigenvec"), 
-                    trim_ws = TRUE, delim=" ", 
-                    col_names = c("ID", "ID2", paste0("PC",(1:nPCs)))) %>% 
+  PCA <- read_delim(paste0(species_path, ".eigenvec"),
+                    trim_ws = TRUE, delim=" ",
+                    col_names = c("ID", "ID2", paste0("PC",(1:nPCs)))) %>%
     select(-ID2) %>%
     full_join(samples, by=c("ID" = "sample")) %>%
     mutate(abr = abbreviate(pop, minlength=3)) %>% select(pop, ID, abr, PC1:PC20)
   eig.val <- sqrt(unlist(read.table(paste0(species_path,".eigenval")))[1:nPCs])
   sum.eig = sum(unlist(read.table(paste0(species_path,".eigenval"))))
-  
+
   # Read in snp weightings matrix
   snpeigs = read.table(paste0(species_path,".eigenvec.var"))
   names(snpeigs) = c("chr", "ID","ref","alt",paste0("PC",(1:nPCs)))
   snpeigs$chr = factor(snpeigs$chr)
   rownames(snpeigs) <- snpeigs$ID
   snpeigs = select(snpeigs, -ID, -ref, -alt)
-  
+
   return(list("pca" = PCA, "eigval" = eig.val, "eigsum" = sum.eig, "snpeigs" = snpeigs))
 }
 
@@ -263,26 +263,26 @@ Make a series of plots:
 ```{r}
 pcdata=pmajPC
 
-# Customize 
+# Customize
 geom.point.summary.params = list(shape = 16,stroke = 1,size = 7,
                                  alpha = .7)
 theme_local <- function () {
-  theme_cowplot(font_size=10) 
+  theme_cowplot(font_size=10)
 }
 
 plot0 <- plot(pcdata)
 plot_legend <- get_legend(plot0)
 
 plot1 <- plot(pcdata,coords = paste0("PC",c(1,2)), color = "pop",
-              geom.point.summary.params = geom.point.summary.params, 
-              preserve.scale = F ,show.legend = FALSE) + theme_cowplot(font_size=10) 
+              geom.point.summary.params = geom.point.summary.params,
+              preserve.scale = F ,show.legend = FALSE) + theme_cowplot(font_size=10)
 
 plot2 <- plot(pcdata,coords = paste0("PC",c(3,4)), color = "pop",
-              geom.point.summary.params = geom.point.summary.params, 
+              geom.point.summary.params = geom.point.summary.params,
               preserve.scale = F ,show.legend = FALSE) + theme_cowplot(font_size=10)
 
 plot3 <- plot(pcdata,coords = paste0("PC",c(5,6)), color = "pop",
-              geom.point.summary.params = geom.point.summary.params, 
+              geom.point.summary.params = geom.point.summary.params,
               preserve.scale = F ,show.legend = FALSE) + theme_cowplot(font_size=10)
 
 plot_grid(plot1, plot2, plot3, plot_legend, labels = list("A","B","C",""))
@@ -290,7 +290,7 @@ plot_grid(plot1, plot2, plot3, plot_legend, labels = list("A","B","C",""))
 
 The proportion of total variance explained by each PC is a useful metric for understanding structure in a sample and for evaluating how many PCs one might want to include in downstream analyses. This can be computed as  $\lambda_i / \sum_{k} \lambda_k$, with $\lambda_i$ being eigenvalues in decreasing order, and is plotted below:
 ```{r, warnings=FALSE,fig.width=3.25,fig.height=3}
-screeplot(pmajPC,type='pve')  + ylim(0,0.15) +
+screeplot(pmajPC,type='pve')  + ylim(0,0.25) +
       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
       theme(axis.line = element_line(size = 1, linetype = "solid"))
 ```
