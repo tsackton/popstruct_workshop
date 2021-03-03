@@ -1,0 +1,15 @@
+genotypename: data/pmaj/pmaj.ld_pruned.bed
+snpname: data/pmaj/pmaj.ld_pruned.bim
+indivname: data/pmaj/pmaj.ld_pruned.PCA.fam
+snpweightoutname: data/pmaj/pmaj.ld_pruned.snpeigs
+evecoutname: data/pmaj/pmaj.ld_pruned.eigs
+evaloutname: data/pmaj/pmaj.ld_pruned.eval
+phylipoutname: data/pmaj/pmaj.ld_pruned.fst
+numoutevec: 20
+numoutlieriter: 0
+outlieroutname: data/pmaj/pmaj.ld_pruned.out
+altnormstyle: NO
+missingmode: NO
+nsnpldregress: 0
+noxdata: YES
+nomalexhet: YES

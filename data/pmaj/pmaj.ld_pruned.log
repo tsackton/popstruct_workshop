@@ -1,0 +1,28 @@
+PLINK v1.90b6.18 64-bit (16 Jun 2020)
+Options in effect:
+  --allow-extra-chr
+  --bfile data/pmaj/pmaj
+  --extract data/pmaj/pmaj.prune.in
+  --make-bed
+  --out data/pmaj/pmaj.ld_pruned
+
+Hostname: bioinf02.rc.fas.harvard.edu
+Working directory: /scratch/tsackton/oeb275/popstruct
+Start time: Tue Mar  2 22:06:54 2021
+
+Random number seed: 1614740814
+1019250 MB RAM detected; reserving 509625 MB for main workspace.
+971624 variants loaded from .bim file.
+61 people (0 males, 0 females, 61 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to data/pmaj/pmaj.ld_pruned.nosex .
+--extract: 162762 variants remaining.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 61 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.98116.
+162762 variants and 61 people pass filters and QC.
+Note: No phenotypes present.
+--make-bed to data/pmaj/pmaj.ld_pruned.bed + data/pmaj/pmaj.ld_pruned.bim +
+data/pmaj/pmaj.ld_pruned.fam ... done.
+
+End time: Tue Mar  2 22:06:54 2021

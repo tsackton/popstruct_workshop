@@ -1,0 +1,27 @@
+PLINK v1.90b6.18 64-bit (16 Jun 2020)
+Options in effect:
+  --allow-extra-chr
+  --bfile data/pdom/pdom
+  --indep-pairwise 50 10 0.1
+  --out data/pdom/pdom
+
+Hostname: bioinf02.rc.fas.harvard.edu
+Working directory: /scratch/tsackton/oeb275/popstruct
+Start time: Tue Mar  2 22:00:15 2021
+
+Random number seed: 1614740415
+1019250 MB RAM detected; reserving 509625 MB for main workspace.
+1024776 variants loaded from .bim file.
+76 people (0 males, 0 females, 76 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to data/pdom/pdom.nosex .
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 76 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.994087.
+1024776 variants and 76 people pass filters and QC.
+Note: No phenotypes present.
+Pruned 833316 variants from chromosome 9, leaving 191460.
+Pruning complete.  833316 of 1024776 variants removed.
+Marker lists written to data/pdom/pdom.prune.in and data/pdom/pdom.prune.out .
+
+End time: Tue Mar  2 22:00:17 2021
