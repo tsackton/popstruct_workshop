@@ -175,6 +175,8 @@ SNPs in high LD with each other contain redundant information.  More worrisome i
 
 Note that plink, although super-useful, is designed to work on human data, and we need to trick it to use it for non-human data.
 
+**Note:** For non-human data, you need to include either the `--allow-extra-chr` flag, if you have non-numeric chromosome names, or `--chr-set` or `--autosome-num` if you have numeric chromosome names. In the latter case, the autosome number has to be higher than or equal to the largest numeric value in your chromosome set. 
+
 ```{r engine=bash, eval=FALSE}
 
 SPECIES=pmaj
@@ -187,35 +189,16 @@ bin/plink --bfile data/${SPECIES}/${SPECIES} --make-bed --extract data/${SPECIES
 
 ### PCA
 
-We will use `smartpca` to run PCA on our plink prepared data. results often helps give insight and confirmation regarding population structure in a  sample. To run PCA, a standard package that is well-suited for SNP data is the `smartpca` package maintained by Nick Patterson and Alkes Price (at http://data.broadinstitute.org/alkesgroup/EIGENSOFT/). To run it, we first set-up a basic `smartpca` parameter file from the command-line of a `bash` shell:
+PLINK helpfully has a PCA function that calculates a variance-standardized relationship matrix (remember our discussion of PCA from the lecture) and extracts the top 20 principal components from it. 
 
 ```{r, engine = 'bash', eval = FALSE}
 SPECIES=pmaj
-PREFIX=${SPECIES}.ld_pruned
 
-#generate a fixed individual file
-awk '{print $1,$2,$3,$4,$5,1}' data/${SPECIES}/$PREFIX.fam > data/${SPECIES}/$PREFIX.PCA.fam
-
-echo genotypename: data/${SPECIES}/$PREFIX.bed > data/${SPECIES}/$PREFIX.par
-echo snpname: data/${SPECIES}/$PREFIX.bim >> data/${SPECIES}/$PREFIX.par
-echo indivname: data/${SPECIES}/$PREFIX.PCA.fam >> data/${SPECIES}/$PREFIX.par
-echo snpweightoutname: data/${SPECIES}/$PREFIX.snpeigs >> data/${SPECIES}/$PREFIX.par
-echo evecoutname: data/${SPECIES}/$PREFIX.eigs >> data/${SPECIES}/$PREFIX.par
-echo evaloutname: data/${SPECIES}/$PREFIX.eval >> data/${SPECIES}/$PREFIX.par
-echo phylipoutname: data/${SPECIES}/$PREFIX.fst >> data/${SPECIES}/$PREFIX.par
-echo numoutevec: 20 >> data/${SPECIES}/$PREFIX.par
-echo numoutlieriter: 0 >> data/${SPECIES}/$PREFIX.par
-echo outlieroutname: data/${SPECIES}/$PREFIX.out >> data/${SPECIES}/$PREFIX.par
-echo altnormstyle: NO >> data/${SPECIES}/$PREFIX.par
-echo missingmode: NO >> data/${SPECIES}/$PREFIX.par
-echo nsnpldregress: 0 >> data/${SPECIES}/$PREFIX.par
-echo noxdata: YES >> data/${SPECIES}/$PREFIX.par
-echo nomalexhet: YES >> data/${SPECIES}/$PREFIX.par
-
-#run smartpca
-bin/smartpca -p data/${SPECIES}/$PREFIX.par
+plink --bfile data/${SPECIES}/${SPECIES}.ld_pruned --pca var-wts --allow-extra-chr --out data/${SPECIES}/${SPECIES}.ld_pruned
 ```   
-This input parameter file runs `smartpca` in its most basic mode (i.e. no automatic outlier removal or adjustments for LD - features which you might want to explore later). 
+
+
+Note that this is a fairly rough first pass. For example, it is sometimes recommended to look for SNPs that are strongly influencing the PC results, as they could represent inversions or similar, and remove them. You can do this with the SNP loadings we calculated, but we won't do this today. 
 
 Now, we can look at the data and make some plots.
 
@@ -224,21 +207,21 @@ Now, we can look at the data and make some plots.
 read_pca <- function(species, sample_file, prefix, nPCs = 20) {
   samples <- read_tsv(sample_file)
   species_path = paste0("data/", species, "/", species, ".", prefix)
-  PCA <- read_delim(paste0(species_path, ".eigs"), 
-                    skip=1, trim_ws = TRUE, delim=" ", 
-                    col_names = c("ID", paste0("PC",(1:nPCs)), "CaseControl")) %>% 
-    select(-CaseControl) %>% separate(ID, into=c("ID"), extra="drop") %>%
+  PCA <- read_delim(paste0(species_path, ".eigenvec"), 
+                    trim_ws = TRUE, delim=" ", 
+                    col_names = c("ID", "ID2", paste0("PC",(1:nPCs)))) %>% 
+    select(-ID2) %>%
     full_join(samples, by=c("ID" = "sample")) %>%
-    mutate(abr = abbreviate(pop, minlength=3)) %>% select(pop, ID, PC1:PC20, abr)
-  eig.val <- sqrt(unlist(read.table(paste0(species_path,".eval")))[1:nPCs])
-  sum.eig = sum(unlist(read.table(paste0(species_path,".eval"))))
+    mutate(abr = abbreviate(pop, minlength=3)) %>% select(pop, ID, abr, PC1:PC20)
+  eig.val <- sqrt(unlist(read.table(paste0(species_path,".eigenval")))[1:nPCs])
+  sum.eig = sum(unlist(read.table(paste0(species_path,".eigenval"))))
   
   # Read in snp weightings matrix
-  snpeigs = read.table(paste0(species_path,".snpeigs"))
-  names(snpeigs) = c("ID","chr","pos",paste0("PC",(1:nPCs)))
+  snpeigs = read.table(paste0(species_path,".eigenvec.var"))
+  names(snpeigs) = c("chr", "ID","ref","alt",paste0("PC",(1:nPCs)))
   snpeigs$chr = factor(snpeigs$chr)
   rownames(snpeigs) <- snpeigs$ID
-  snpeigs = snpeigs[,-1]
+  snpeigs = select(snpeigs, -ID, -ref, -alt)
   
   return(list("pca" = PCA, "eigval" = eig.val, "eigsum" = sum.eig, "snpeigs" = snpeigs))
 }
@@ -311,5 +294,10 @@ screeplot(pmajPC,type='pve')  + ylim(0,0.15) +
       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
       theme(axis.line = element_line(size = 1, linetype = "solid"))
 ```
+
+
+You have the files to look at the sparrow and the owl datasets as well. As an exercise, let's explore their PC plots.
+
+While we didn't get to it today, there are lots of other things we can do. For example, the admixture program (in the bin) directory can be used to generate admixture / STRUCTURE-style plots. It is very easy to run ```admixture data/pmaj/pmaj.ld_pruned.bed 8``` for example will generate a K=8 admixture run for the Pmaj data. It is a bit complicated to plot, but there is a detailed manual: http://dalexander.github.io/admixture/admixture-manual.pdf
 
 
