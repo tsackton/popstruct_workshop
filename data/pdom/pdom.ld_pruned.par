@@ -1,0 +1,15 @@
+genotypename: data/pdom/pdom.ld_pruned.bed
+snpname: data/pdom/pdom.ld_pruned.bim
+indivname: data/pdom/pdom.ld_pruned.PCA.fam
+snpweightoutname: data/pdom/pdom.ld_pruned.snpeigs
+evecoutname: data/pdom/pdom.ld_pruned.eigs
+evaloutname: data/pdom/pdom.ld_pruned.eval
+phylipoutname: data/pdom/pdom.ld_pruned.fst
+numoutevec: 20
+numoutlieriter: 0
+outlieroutname: data/pdom/pdom.ld_pruned.out
+altnormstyle: NO
+missingmode: NO
+nsnpldregress: 0
+noxdata: YES
+nomalexhet: YES
