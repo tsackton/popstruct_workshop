@@ -328,7 +328,7 @@ And, the plot
 
 ```{r}
 pmaj.pca.filtered <- read_pca("pmaj", "data/pmaj/pmaj_samples_clean.txt", "filtered.ld_pruned")
-plot_pca(pmaj.pca.filteref$pca)
+plot_pca(pmaj.pca.filtered$pca)
 ```
 
 I hope this provides a good guideline for how to start with this kind of analysis, but remember this is just a start, and there is a lot more to explore in population structure methods.
