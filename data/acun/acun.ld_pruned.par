@@ -1,0 +1,15 @@
+genotypename: data/acun/acun.ld_pruned.bed
+snpname: data/acun/acun.ld_pruned.bim
+indivname: data/acun/acun.ld_pruned.PCA.fam
+snpweightoutname: data/acun/acun.ld_pruned.snpeigs
+evecoutname: data/acun/acun.ld_pruned.eigs
+evaloutname: data/acun/acun.ld_pruned.eval
+phylipoutname: data/acun/acun.ld_pruned.fst
+numoutevec: 20
+numoutlieriter: 0
+outlieroutname: data/acun/acun.ld_pruned.out
+altnormstyle: NO
+missingmode: NO
+nsnpldregress: 0
+noxdata: YES
+nomalexhet: YES

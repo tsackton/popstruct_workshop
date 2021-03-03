@@ -1,18 +1,28 @@
+PLINK v1.90b6.18 64-bit (16 Jun 2020)
+Options in effect:
+  --allow-extra-chr
+  --autosome-num 62
+  --bfile data/acun/acun
+  --indep-pairwise 50 10 0.1
+  --out data/acun/acun
 
-VCFtools - 0.1.15
-(C) Adam Auton and Anthony Marcketta 2009
+Hostname: bioinf02.rc.fas.harvard.edu
+Working directory: /scratch/tsackton/oeb275/popstruct_workshop
+Start time: Wed Mar  3 08:38:32 2021
 
-Parameters as interpreted:
-	--gzvcf data/vcfs/acun.chrom9.vcf.gz
-	--max-missing 0.15
-	--out data/acun/acun
-	--relatedness2
-	--remove-filtered-all
-	--remove-indels
+Random number seed: 1614778712
+1019250 MB RAM detected; reserving 509625 MB for main workspace.
+492193 variants loaded from .bim file.
+74 samples (0 males, 0 females, 74 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to data/acun/acun.nosex .
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 74 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.990545.
+492193 variants and 74 samples pass filters and QC.
+Note: No phenotypes present.
+Pruned 376268 variants from chromosome 61, leaving 115925.
+Pruning complete.  376268 of 492193 variants removed.
+Marker lists written to data/acun/acun.prune.in and data/acun/acun.prune.out .
 
-Using zlib version: 1.2.7
-After filtering, kept 137 out of 137 Individuals
-Outputting Individual Relatedness
-	Relatedness: Only using biallelic sites.
-After filtering, kept 503688 out of a possible 613902 Sites
-Run Time = 137.00 seconds
+End time: Wed Mar  3 08:38:34 2021
