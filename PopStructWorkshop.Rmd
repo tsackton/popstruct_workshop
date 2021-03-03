@@ -300,4 +300,6 @@ You have the files to look at the sparrow and the owl datasets as well. As an ex
 
 While we didn't get to it today, there are lots of other things we can do. For example, the admixture program (in the bin) directory can be used to generate admixture / STRUCTURE-style plots. It is very easy to run ```admixture data/pmaj/pmaj.ld_pruned.bed 8``` for example will generate a K=8 admixture run for the Pmaj data. It is a bit complicated to plot, but there is a detailed manual: http://dalexander.github.io/admixture/admixture-manual.pdf
 
+You can also use PLINK to subset your data to focus on some specific individuals. For example, in the Pmaj data, we might want to exclude the two highly divergent populations and focus on the European and west Asian samples.
 
+I hope this provides a good guideline for how to start with this kind of analysis, but remember this is just a start, and there is a lot more to explore in population structure methods.
